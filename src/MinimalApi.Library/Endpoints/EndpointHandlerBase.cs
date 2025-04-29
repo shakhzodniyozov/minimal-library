@@ -28,12 +28,42 @@ public abstract class EndpointHandlerBase<TResponse> : IEndpointHandlerBase
 
 public abstract class EndpointHandler<TResponse> : EndpointHandlerBase<TResponse>, IEndpointHandler
 {
-    public abstract Task<IResult> HandleAsync(RequestParameters? requestParameters,
-        CancellationToken cancellationToken = default);
+    public RequestParameters RequestParameters { get; set; } = new();
+    public abstract Task<IResult> HandleAsync(CancellationToken cancellationToken = default);
+
+    protected T FromRoute<T>(string paramname)
+    {
+        if (RequestParameters.RouteParameters!.TryGetValue(paramname.ToLower(), out var value))
+        {
+            var converter = TypeDescriptor.GetConverter(typeof(T));
+
+            if (converter.IsValid(value!))
+            {
+                return (T?)converter.ConvertFrom(value!);
+            }
+        }
+
+        return default;
+    }
+    
+    protected T FromQuery<T>(string paramname)
+    {
+        if (RequestParameters.QueryParameters!.TryGetValue(paramname, out var value))
+        {
+            var converter = TypeDescriptor.GetConverter(typeof(T));
+
+            if (converter.IsValid(value!))
+            {
+                return (T?)converter.ConvertFrom(value!);
+            }
+        }
+
+        return default;
+    }
 }
 
 public abstract class EndpointHandler<TRequest, TResponse> : EndpointHandlerBase<TResponse>, IEndpointHandler<TRequest>
 {
-    public abstract Task<IResult> HandleAsync(RequestParameters<TRequest> requestParameters,
-        CancellationToken cancellationToken);
+    public RequestParameters<TRequest> RequestParameters { get; set; } = new();
+    public abstract Task<IResult> HandleAsync(CancellationToken cancellationToken = default);
 }
